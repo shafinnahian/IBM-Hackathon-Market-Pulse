@@ -1,0 +1,26 @@
+name: Deploy to IBM Cloud Code Engine
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # allows manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Deploy to IBM Cloud Code Engine
+        uses: IBM/code-engine-github-action@v1
+        with:
+          api-key: ${{ secrets.IBM_IAM_API_KEY }}
+          resource-group: 'Default'
+          region: 'us-south'
+          project: 'watsonx-Hackathon Code Engine'
+          component: 'app'
+          name: 'market-pulse-app'
+          build-source: './'
+          env-vars: 'CLOUDANT_URL=${{ secrets.CLOUDANT_URL }},CLOUDANT_APIKEY=${{ secrets.CLOUDANT_APIKEY }}'

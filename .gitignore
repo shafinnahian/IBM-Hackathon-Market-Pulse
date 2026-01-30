@@ -7,5 +7,7 @@ env/
 *.egg-info/
 __pycache__/
 *.egg
+*.py[cod]
 
 build/
+dist/
