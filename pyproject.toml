@@ -7,7 +7,8 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
-    "ibmcloudant>=0.9.1",
+    "ibm-cloudant>=0.9.1",
+    "ibm-cloud-sdk-core>=3.20.0",
     "httpx>=0.26.0",
     "pydantic-settings>=2.0.0",
     "python-dotenv>=1.0.0",
