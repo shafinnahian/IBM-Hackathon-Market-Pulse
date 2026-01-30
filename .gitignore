@@ -1,0 +1,11 @@
+# Virtual environment
+.venv/
+venv/
+env/
+.env
+
+*.egg-info/
+__pycache__/
+*.egg
+
+build/
