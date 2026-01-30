@@ -7,8 +7,11 @@ env/
 *.egg-info/
 __pycache__/
 *.egg
-
-build/
+*.py[cod]
 
 # Stage 1 guideline (internal)
 guideline_stage_1.md
+
+build/
+setup/cloudant-scaffolding
+dist/
