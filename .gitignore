@@ -1,0 +1,14 @@
+# Virtual environment
+.venv/
+venv/
+env/
+.env
+
+*.egg-info/
+__pycache__/
+*.egg
+
+build/
+
+# Stage 1 guideline (internal)
+guideline_stage_1.md
