@@ -7,9 +7,10 @@ This document covers how salary and job data is ingested into Cloudant for the M
 ```
 Job Salary Data API (OpenWeb Ninja)  ──→  Cloudant DB: salary_data
 Adzuna API                           ──→  Cloudant DB: job_listings
+The Muse API                         ──→  Cloudant DB: muse_jobs
 ```
 
-Two separate Cloudant databases store data from two different APIs. They share common fields (`job_title`, `location`, `company`) that can be used to cross-reference.
+Three separate Cloudant databases store data from different APIs. They share common fields (`job_title`/`title`, `location`/`locations`, `company`) that can be used to cross-reference.
 
 ## Cloudant Instance
 
@@ -135,6 +136,92 @@ python scripts/ingest_salaries.py --batch experience --dry-run
 **Experience batch:** Same 6 roles, across all 5 experience levels (LESS_THAN_ONE through TEN_PLUS), in New York and San Francisco
 
 **Companies batch:** Software Engineer, Data Scientist, ML Engineer, Product Manager, DevOps Engineer — at Google, Amazon, Microsoft, Apple, Meta, Netflix, Nvidia, Salesforce, Adobe, IBM, Oracle, Uber, Airbnb, Stripe, Coinbase
+
+### `muse_jobs`
+
+Job listings from The Muse public API.
+
+**Document schema:**
+
+```json
+{
+  "_id": "auto-generated",
+  "type": "muse_job",
+  "source": "themuse",
+  "muse_id": 18012186,
+  "title": "DevOps Engineer",
+  "company": "Merge",
+  "locations": ["San Francisco, CA"],
+  "categories": ["Software Engineering"],
+  "levels": ["Mid Level"],
+  "publication_date": "2026-01-27T23:32:21Z",
+  "description": "Plain text job description (HTML stripped)",
+  "landing_page_url": "https://www.themuse.com/jobs/merge/devops-engineer-637902"
+}
+```
+
+**Current data:** ~8,081 documents (4 categories × 3 levels, ingested via `tech-all` batch).
+
+## Muse Jobs Ingestion Script
+
+**Location:** `scripts/ingest_muse_jobs.py`
+
+### Prerequisites
+
+```bash
+source .venv/bin/activate
+
+# Ensure .env has these values (no API key needed — The Muse API is public)
+CLOUDANT_URL=https://a5b71c18-ff9c-47bf-9928-3d8e7113b6ca-bluemix.cloudantnosqldb.appdomain.cloud
+CLOUDANT_APIKEY=<cloudant-api-key>
+```
+
+### Batch Presets
+
+| Batch | Command | What it fetches |
+|-------|---------|-----------------|
+| `tech-all` | `python scripts/ingest_muse_jobs.py --batch tech-all` | Software Engineering + Data Science + Data and Analytics + Computer and IT, all levels, no location filter |
+| `tech-us` | `python scripts/ingest_muse_jobs.py --batch tech-us` | Same categories, filtered to 7 US cities |
+
+### Custom Queries
+
+```bash
+# Single category and level
+python scripts/ingest_muse_jobs.py --category "Software Engineering" --level "Mid Level"
+
+# Multiple categories (repeatable flags)
+python scripts/ingest_muse_jobs.py --category "Software Engineering" --category "Data Science"
+
+# Limit pages for testing
+python scripts/ingest_muse_jobs.py --batch tech-all --max-pages 2
+
+# Dry run — preview URL and first page without storing
+python scripts/ingest_muse_jobs.py --batch tech-all --dry-run
+```
+
+### Deduplication
+
+The script queries Cloudant for existing `muse_id` values before inserting, so it is safe to re-run. Duplicate jobs are skipped automatically.
+
+### Status
+
+- [x] `tech-all` — completed (~8,081 documents stored)
+- [ ] `tech-us` — not yet run
+
+### API Limitations
+
+The Muse API reports a `page_count` in responses but returns **400 Bad Request** for any page >= 100. The script works around this by splitting queries into individual category × level combinations, giving each combo its own 100-page window. This maximizes coverage but some results in very large combos (e.g. Software Engineering / Senior Level with 321 pages) remain unreachable.
+
+### API Reference: The Muse
+
+- **Base URL:** `https://www.themuse.com/api/public/jobs`
+- **Auth:** None required (500 requests/hour without key, 3600/hour with key)
+- **Pagination:** `?page=N` (20 results per page, response includes `page_count`). Hard cap at page 99.
+- **Filters (query params, repeatable):**
+  - `category` — e.g. "Software Engineering", "Data Science", "Computer and IT"
+  - `level` — e.g. "Entry Level", "Mid Level", "Senior Level"
+  - `location` — e.g. "New York, NY", "San Francisco, CA"
+- **Response fields per job:** `id`, `name`, `company.name`, `locations[].name`, `categories[].name`, `levels[].name`, `publication_date`, `contents` (HTML), `refs.landing_page`
 
 ## Querying Cloudant from Python
 
