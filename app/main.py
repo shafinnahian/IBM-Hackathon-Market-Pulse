@@ -1,7 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Market Pulse API")
+from app.routers import jobs, salaries
+
+app = FastAPI(
+    title="Market Pulse API",
+    description=(
+        "Job market intelligence API providing tech job listings and salary benchmarks. "
+        "Search jobs by title, company, location, category, or level. "
+        "Compare compensation across cities, experience levels, and companies."
+    ),
+    version="1.0.0",
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -10,6 +20,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(jobs.router)
+app.include_router(salaries.router)
 
 
 @app.get("/")
