@@ -88,31 +88,29 @@ class TrendingSkillsResponse(BaseModel):
 # Salary models
 # ---------------------------------------------------------------------------
 
-class SalaryInfo(BaseModel):
-    """Core salary data."""
-
-    median_salary: float | None = Field(None, description="Total median compensation in USD/year")
-    min_salary: float | None = Field(None, description="Minimum reported salary")
-    max_salary: float | None = Field(None, description="Maximum reported salary")
-    median_base_salary: float | None = Field(None, description="Median base salary excluding bonuses/equity")
-    salary_currency: str = Field("USD", description="Currency code")
-    salary_period: str = Field("YEAR", description="Pay period")
-    publisher_name: str = Field("", description="Data source publisher")
-    confidence: str = Field("", description="Confidence level of the estimate")
-
-
 class SalaryRecord(BaseModel):
-    """A single salary data point with context."""
+    """A single salary data point from an Adzuna job posting."""
 
-    job_title: str = Field(..., description="Job role title")
-    location: str | None = Field(None, description="City or region")
-    years_of_experience: str | None = Field(None, description="Experience bracket, e.g. ONE_TO_THREE")
-    company: str | None = Field(None, description="Company name")
-    salary: SalaryInfo
+    job_title: str = Field(..., description="Job title")
+    company: str = Field(..., description="Company name")
+    location: str = Field(..., description="Job location")
+    salary_min: float = Field(..., description="Minimum salary in USD/year")
+    salary_max: float = Field(..., description="Maximum salary in USD/year")
+
+
+class SalaryAggregation(BaseModel):
+    """Aggregate salary statistics across matching job postings."""
+
+    avg_salary_min: float = Field(..., description="Average of salary_min across matches")
+    avg_salary_max: float = Field(..., description="Average of salary_max across matches")
+    overall_min: float = Field(..., description="Lowest salary_min")
+    overall_max: float = Field(..., description="Highest salary_max")
+    median_salary: float = Field(..., description="Median of (salary_min + salary_max) / 2")
 
 
 class SalaryResponse(BaseModel):
-    """Salary query results."""
+    """Salary search results with aggregation."""
 
     count: int = Field(..., description="Number of matching salary records")
-    data: list[SalaryRecord]
+    aggregation: SalaryAggregation | None = Field(None, description="Aggregate stats (null if no results)")
+    records: list[SalaryRecord]

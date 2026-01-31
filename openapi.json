@@ -533,14 +533,14 @@
         }
       }
     },
-    "/salaries/by-location": {
+    "/salaries/search": {
       "get": {
         "tags": [
           "Salaries"
         ],
-        "summary": "Get salary data for a job title by city/location",
-        "description": "Returns salary benchmarks for a given role across cities. Omit location to get all available cities for comparison.",
-        "operationId": "get_salary_by_location",
+        "summary": "Search salary data from Adzuna job postings",
+        "description": "Aggregates salary information from Adzuna job postings that include salary data. Returns individual salary records plus aggregate stats (min, max, median, average). Requires a job title; location and company are optional filters. All text filters are case-insensitive partial matches.",
+        "operationId": "search_salaries",
         "parameters": [
           {
             "name": "job_title",
@@ -548,10 +548,10 @@
             "required": true,
             "schema": {
               "type": "string",
-              "description": "Job role, e.g. 'Software Engineer', 'Data Scientist'",
+              "description": "Job title keyword, e.g. 'frontend developer', 'data scientist'",
               "title": "Job Title"
             },
-            "description": "Job role, e.g. 'Software Engineer', 'Data Scientist'"
+            "description": "Job title keyword, e.g. 'frontend developer', 'data scientist'"
           },
           {
             "name": "location",
@@ -566,136 +566,10 @@
                   "type": "null"
                 }
               ],
-              "description": "City name, e.g. 'San Francisco', 'New York'",
+              "description": "City, state, or region, e.g. 'California', 'New York'",
               "title": "Location"
             },
-            "description": "City name, e.g. 'San Francisco', 'New York'"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SalaryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/salaries/by-experience": {
-      "get": {
-        "tags": [
-          "Salaries"
-        ],
-        "summary": "Get salary data by years of experience for a job title",
-        "description": "Shows how compensation scales with experience. Available brackets: LESS_THAN_ONE, ONE_TO_THREE, FOUR_TO_SIX, SEVEN_TO_NINE, TEN_PLUS.",
-        "operationId": "get_salary_by_experience",
-        "parameters": [
-          {
-            "name": "job_title",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Job role, e.g. 'Software Engineer'",
-              "title": "Job Title"
-            },
-            "description": "Job role, e.g. 'Software Engineer'"
-          },
-          {
-            "name": "years_of_experience",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Experience bracket: LESS_THAN_ONE, ONE_TO_THREE, FOUR_TO_SIX, SEVEN_TO_NINE, or TEN_PLUS",
-              "title": "Years Of Experience"
-            },
-            "description": "Experience bracket: LESS_THAN_ONE, ONE_TO_THREE, FOUR_TO_SIX, SEVEN_TO_NINE, or TEN_PLUS"
-          },
-          {
-            "name": "location",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "City name to filter by",
-              "title": "Location"
-            },
-            "description": "City name to filter by"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SalaryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/salaries/by-company": {
-      "get": {
-        "tags": [
-          "Salaries"
-        ],
-        "summary": "Get company-specific salary data for a job title",
-        "description": "Returns salary data at specific companies. Omit company to see all available companies for a role.",
-        "operationId": "get_salary_by_company",
-        "parameters": [
-          {
-            "name": "job_title",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Job role, e.g. 'Software Engineer'",
-              "title": "Job Title"
-            },
-            "description": "Job role, e.g. 'Software Engineer'"
+            "description": "City, state, or region, e.g. 'California', 'New York'"
           },
           {
             "name": "company",
@@ -710,97 +584,24 @@
                   "type": "null"
                 }
               ],
-              "description": "Company name, e.g. 'Google', 'Amazon'",
+              "description": "Company name, e.g. 'TikTok', 'Amazon'",
               "title": "Company"
             },
-            "description": "Company name, e.g. 'Google', 'Amazon'"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SalaryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/salaries/compare": {
-      "get": {
-        "tags": [
-          "Salaries"
-        ],
-        "summary": "Compare salaries for a role across locations or companies",
-        "description": "Side-by-side salary comparison. Provide locations and/or companies to compare. At least one of locations or companies must be provided.",
-        "operationId": "compare_salaries",
-        "parameters": [
-          {
-            "name": "job_title",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Job role to compare",
-              "title": "Job Title"
-            },
-            "description": "Job role to compare"
+            "description": "Company name, e.g. 'TikTok', 'Amazon'"
           },
           {
-            "name": "locations",
+            "name": "limit",
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Cities to compare, e.g. 'New York'",
-              "title": "Locations"
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Max individual salary records to return",
+              "default": 25,
+              "title": "Limit"
             },
-            "description": "Cities to compare, e.g. 'New York'"
-          },
-          {
-            "name": "companies",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Companies to compare, e.g. 'Google'",
-              "title": "Companies"
-            },
-            "description": "Companies to compare, e.g. 'Google'"
+            "description": "Max individual salary records to return"
           }
         ],
         "responses": {
@@ -1229,139 +1030,83 @@
         "title": "JobSummary",
         "description": "Compact job listing returned in search results."
       },
-      "SalaryInfo": {
+      "SalaryAggregation": {
         "properties": {
+          "avg_salary_min": {
+            "type": "number",
+            "title": "Avg Salary Min",
+            "description": "Average of salary_min across matches"
+          },
+          "avg_salary_max": {
+            "type": "number",
+            "title": "Avg Salary Max",
+            "description": "Average of salary_max across matches"
+          },
+          "overall_min": {
+            "type": "number",
+            "title": "Overall Min",
+            "description": "Lowest salary_min"
+          },
+          "overall_max": {
+            "type": "number",
+            "title": "Overall Max",
+            "description": "Highest salary_max"
+          },
           "median_salary": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "number",
             "title": "Median Salary",
-            "description": "Total median compensation in USD/year"
-          },
-          "min_salary": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Min Salary",
-            "description": "Minimum reported salary"
-          },
-          "max_salary": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Salary",
-            "description": "Maximum reported salary"
-          },
-          "median_base_salary": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Median Base Salary",
-            "description": "Median base salary excluding bonuses/equity"
-          },
-          "salary_currency": {
-            "type": "string",
-            "title": "Salary Currency",
-            "description": "Currency code",
-            "default": "USD"
-          },
-          "salary_period": {
-            "type": "string",
-            "title": "Salary Period",
-            "description": "Pay period",
-            "default": "YEAR"
-          },
-          "publisher_name": {
-            "type": "string",
-            "title": "Publisher Name",
-            "description": "Data source publisher",
-            "default": ""
-          },
-          "confidence": {
-            "type": "string",
-            "title": "Confidence",
-            "description": "Confidence level of the estimate",
-            "default": ""
+            "description": "Median of (salary_min + salary_max) / 2"
           }
         },
         "type": "object",
-        "title": "SalaryInfo",
-        "description": "Core salary data."
+        "required": [
+          "avg_salary_min",
+          "avg_salary_max",
+          "overall_min",
+          "overall_max",
+          "median_salary"
+        ],
+        "title": "SalaryAggregation",
+        "description": "Aggregate salary statistics across matching job postings."
       },
       "SalaryRecord": {
         "properties": {
           "job_title": {
             "type": "string",
             "title": "Job Title",
-            "description": "Job role title"
-          },
-          "location": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Location",
-            "description": "City or region"
-          },
-          "years_of_experience": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Years Of Experience",
-            "description": "Experience bracket, e.g. ONE_TO_THREE"
+            "description": "Job title"
           },
           "company": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Company",
             "description": "Company name"
           },
-          "salary": {
-            "$ref": "#/components/schemas/SalaryInfo"
+          "location": {
+            "type": "string",
+            "title": "Location",
+            "description": "Job location"
+          },
+          "salary_min": {
+            "type": "number",
+            "title": "Salary Min",
+            "description": "Minimum salary in USD/year"
+          },
+          "salary_max": {
+            "type": "number",
+            "title": "Salary Max",
+            "description": "Maximum salary in USD/year"
           }
         },
         "type": "object",
         "required": [
           "job_title",
-          "salary"
+          "company",
+          "location",
+          "salary_min",
+          "salary_max"
         ],
         "title": "SalaryRecord",
-        "description": "A single salary data point with context."
+        "description": "A single salary data point from an Adzuna job posting."
       },
       "SalaryResponse": {
         "properties": {
@@ -1370,21 +1115,32 @@
             "title": "Count",
             "description": "Number of matching salary records"
           },
-          "data": {
+          "aggregation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SalaryAggregation"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Aggregate stats (null if no results)"
+          },
+          "records": {
             "items": {
               "$ref": "#/components/schemas/SalaryRecord"
             },
             "type": "array",
-            "title": "Data"
+            "title": "Records"
           }
         },
         "type": "object",
         "required": [
           "count",
-          "data"
+          "records"
         ],
         "title": "SalaryResponse",
-        "description": "Salary query results."
+        "description": "Salary search results with aggregation."
       },
       "TrendingSkill": {
         "properties": {
