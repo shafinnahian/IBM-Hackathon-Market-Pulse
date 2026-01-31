@@ -132,7 +132,7 @@ def search_jobs(
     if company:
         selector["company_name"] = {"$regex": f"(?i){company}"}
     if location:
-        selector["locations"] = {"$elemMatch": {"$eq": f"(?i){location}"}}
+        selector["locations"] = {"$elemMatch": {"$eq": location}}
     if category:
         selector["categories"] = {"$elemMatch": {"$regex": f"(?i){category}"}}
     if level:
