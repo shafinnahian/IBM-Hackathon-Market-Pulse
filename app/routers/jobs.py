@@ -1,44 +1,46 @@
 from fastapi import APIRouter, HTTPException, Query
 
+from app.config import settings
 from app.database import get_cloudant
 from app.models import JobDetail, JobSearchResponse, JobSummary
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
-DB_NAME = "muse_jobs"
+DB_NAME = settings.cloudant_db_name
 
+# Canonical job_post: title_raw, company_name, url, posted_at, locations, categories, levels, description_raw, source, external_id
 SUMMARY_FIELDS = [
-    "_id", "title", "company", "locations", "categories",
-    "levels", "publication_date", "landing_page_url",
+    "_id", "title_raw", "company_name", "locations", "categories",
+    "levels", "posted_at", "url", "source",
 ]
 
 
 def _doc_to_summary(doc: dict) -> JobSummary:
     return JobSummary(
         id=doc.get("_id", ""),
-        title=doc.get("title", ""),
-        company=doc.get("company", ""),
+        title=doc.get("title_raw", doc.get("title", "")),
+        company=doc.get("company_name", doc.get("company", "")),
         locations=doc.get("locations", []),
         categories=doc.get("categories", []),
         levels=doc.get("levels", []),
-        publication_date=doc.get("publication_date", ""),
-        landing_page_url=doc.get("landing_page_url", ""),
+        publication_date=doc.get("posted_at", doc.get("publication_date", "")),
+        landing_page_url=doc.get("url", doc.get("landing_page_url", "")),
     )
 
 
 def _doc_to_detail(doc: dict) -> JobDetail:
     return JobDetail(
         id=doc.get("_id", ""),
-        title=doc.get("title", ""),
-        company=doc.get("company", ""),
+        title=doc.get("title_raw", doc.get("title", "")),
+        company=doc.get("company_name", doc.get("company", "")),
         locations=doc.get("locations", []),
         categories=doc.get("categories", []),
         levels=doc.get("levels", []),
-        publication_date=doc.get("publication_date", ""),
-        landing_page_url=doc.get("landing_page_url", ""),
-        description=doc.get("description", ""),
+        publication_date=doc.get("posted_at", doc.get("publication_date", "")),
+        landing_page_url=doc.get("url", doc.get("landing_page_url", "")),
+        description=doc.get("description_raw", doc.get("description", "")),
         source=doc.get("source", ""),
-        muse_id=doc.get("muse_id"),
+        muse_id=int(doc["external_id"]) if doc.get("source") == "themuse" and doc.get("external_id") else None,
     )
 
 
@@ -67,12 +69,12 @@ def search_jobs(
     limit: int = Query(25, ge=1, le=100, description="Max results to return"),
     skip: int = Query(0, ge=0, description="Number of results to skip for pagination"),
 ) -> JobSearchResponse:
-    selector: dict = {"type": "muse_job"}
+    selector: dict = {"type": "job_post"}
 
     if title:
-        selector["title"] = {"$regex": f"(?i){title}"}
+        selector["title_raw"] = {"$regex": f"(?i){title}"}
     if company:
-        selector["company"] = {"$regex": f"(?i){company}"}
+        selector["company_name"] = {"$regex": f"(?i){company}"}
     if location:
         selector["locations"] = {"$elemMatch": {"$regex": f"(?i){location}"}}
     if category:

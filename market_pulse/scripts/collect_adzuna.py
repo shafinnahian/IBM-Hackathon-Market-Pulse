@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 import httpx
 from dotenv import load_dotenv
 
+from market_pulse.companies import ensure_company
 from market_pulse.roles import DEFAULT_ROLES, map_title_to_role_id
 
 load_dotenv()
@@ -61,32 +62,48 @@ def _ensure_roles(client) -> None:
             pass  # ignore; doc may already exist
 
 
-def _job_to_doc(job: dict, fetched_at: str) -> dict:
-    """Map one Adzuna result item to a Cloudant document (raw collect + role_id)."""
+def _job_to_doc(
+    job: dict,
+    fetched_at: str,
+    company_id: str,
+    company_name: str,
+) -> dict:
+    """Map one Adzuna result item to canonical job_post document."""
     external_id = job.get("id", "")
     title_raw = job.get("title") or ""
     doc_id = f"job_post:adzuna:{external_id}"
+    posted_at = job.get("created") or ""
     return {
         "_id": doc_id,
         "type": "job_post",
         "source": "adzuna",
         "external_id": external_id,
+        "company_id": company_id,
+        "company_name": company_name,
         "role_id": map_title_to_role_id(title_raw),
-        "title": title_raw,
-        "description": job.get("description"),
-        "url": job.get("redirect_url"),
-        "created": job.get("created"),
-        "company": job.get("company"),
-        "location": job.get("location"),
-        "category": job.get("category"),
+        "title_raw": title_raw,
+        "description_raw": job.get("description") or "",
+        "url": job.get("redirect_url") or "",
+        "posted_at": posted_at,
+        "fetched_at": fetched_at,
+        "locations": _adzuna_locations(job),
         "salary_min": job.get("salary_min"),
         "salary_max": job.get("salary_max"),
         "salary_is_predicted": job.get("salary_is_predicted"),
-        "latitude": job.get("latitude"),
-        "longitude": job.get("longitude"),
-        "adref": job.get("adref"),
-        "fetched_at": fetched_at,
     }
+
+
+def _adzuna_locations(job: dict) -> list[str]:
+    """Extract locations array from Adzuna job (display_name or area)."""
+    loc = job.get("location") or {}
+    if isinstance(loc, dict):
+        name = loc.get("display_name")
+        if name:
+            return [name]
+        area = loc.get("area") or []
+        if isinstance(area, list):
+            return [str(a) for a in area[:10]]
+    return []
 
 
 def main() -> None:
@@ -120,7 +137,10 @@ def main() -> None:
     fetched_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     stored = 0
     for job in results:
-        doc = _job_to_doc(job, fetched_at)
+        company_obj = job.get("company") or {}
+        company_name = company_obj.get("display_name", "") if isinstance(company_obj, dict) else ""
+        company_id = ensure_company(client, DB_NAME, company_name or "Unknown", source_id=None)
+        doc = _job_to_doc(job, fetched_at, company_id=company_id, company_name=company_name or "Unknown")
         doc_id = doc["_id"]
         rev = None
         try:
