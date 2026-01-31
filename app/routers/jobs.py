@@ -123,13 +123,7 @@ def _build_selector(
     if company:
         selector["company_name"] = {"$regex": f"(?i){company}"}
     if location:
-        loc_tokens = [s.strip() for s in location.split(",") if s.strip()]
-        if len(loc_tokens) == 1:
-            selector["locations"] = {"$elemMatch": {"$eq": loc_tokens[0]}}
-        elif len(loc_tokens) > 1:
-            selector["$or"] = [
-                {"locations": {"$elemMatch": {"$eq": t}}} for t in loc_tokens
-            ]
+        selector["locations"] = {"$elemMatch": {"$regex": _expand_location(location)}}
     if category:
         selector["categories"] = {"$elemMatch": {"$regex": f"(?i){category}"}}
     if level:
@@ -174,24 +168,6 @@ def search_jobs(
     limit: int = Query(25, ge=1, le=100, description="Max results to return"),
     skip: int = Query(0, ge=0, description="Number of results to skip for pagination"),
 ) -> JobSearchResponse:
-    selector: dict = {"type": "job_post"}
-
-    if title:
-        selector["title_raw"] = {"$regex": f"(?i){title}"}
-    if company:
-        selector["company_name"] = {"$regex": f"(?i){company}"}
-    if location:
-        loc_tokens = [s.strip() for s in location.split(",") if s.strip()]
-        if len(loc_tokens) == 1:
-            selector["locations"] = {"$elemMatch": {"$eq": loc_tokens[0]}}
-        elif len(loc_tokens) > 1:
-            selector["$or"] = [
-                {"locations": {"$elemMatch": {"$eq": t}}} for t in loc_tokens
-            ]
-    if category:
-        selector["categories"] = {"$elemMatch": {"$regex": f"(?i){category}"}}
-    if level:
-        selector["levels"] = {"$elemMatch": {"$regex": f"(?i){level}"}}
     client = get_cloudant()
 
     if source:
