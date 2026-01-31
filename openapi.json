@@ -185,9 +185,54 @@
         "tags": [
           "Jobs"
         ],
-        "summary": "Get all available filter values for job searches",
-        "description": "Returns every distinct location, category, and level in the database. Use this to discover valid filter values before searching jobs. For example, call this to find valid locations instead of guessing city names. Results are cached for 1 hour.",
+        "summary": "Look up valid filter values for a specific field",
+        "description": "Returns matching values for a single filterable field (locations, categories, or levels). Use the optional 'q' parameter to search within the field. For locations, searching by state name (e.g. 'california') also returns entries using the abbreviation ('CA') and vice versa. Use this tool when you need to discover valid values for job search filters.",
         "operationId": "get_job_filters",
+        "parameters": [
+          {
+            "name": "field",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Field to look up: 'locations', 'categories', or 'levels'",
+              "title": "Field"
+            },
+            "description": "Field to look up: 'locations', 'categories', or 'levels'"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional search term to filter results, e.g. 'california' or 'software'",
+              "title": "Q"
+            },
+            "description": "Optional search term to filter results, e.g. 'california' or 'software'"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "description": "Max values to return (default 20)",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Max values to return (default 20)"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -195,6 +240,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/JobFiltersResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -933,39 +988,33 @@
       },
       "JobFiltersResponse": {
         "properties": {
-          "locations": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Locations",
-            "description": "All distinct job locations in the database"
+          "field": {
+            "type": "string",
+            "title": "Field",
+            "description": "The field that was queried: 'locations', 'categories', or 'levels'"
           },
-          "categories": {
+          "values": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Categories",
-            "description": "All distinct job categories"
+            "title": "Values",
+            "description": "Matching values, sorted alphabetically"
           },
-          "levels": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Levels",
-            "description": "All distinct seniority levels"
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total number of matches (before limit applied)"
           }
         },
         "type": "object",
         "required": [
-          "locations",
-          "categories",
-          "levels"
+          "field",
+          "values",
+          "total"
         ],
         "title": "JobFiltersResponse",
-        "description": "Available filter values for job searches."
+        "description": "Matching filter values for a single field."
       },
       "JobMatchResponse": {
         "properties": {
