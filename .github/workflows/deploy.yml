@@ -23,4 +23,10 @@ jobs:
           component: 'app'
           name: 'market-pulse-app'
           build-source: './'
-          env-vars: 'CLOUDANT_URL=${{ secrets.CLOUDANT_URL }},CLOUDANT_APIKEY=${{ secrets.CLOUDANT_APIKEY }}'
+          build-strategy: 'dockerfile'
+
+      - name: Set environment variables
+        run: |
+          ibmcloud ce application update --name market-pulse-app \
+            --env CLOUDANT_URL=${{ secrets.CLOUDANT_URL }} \
+            --env CLOUDANT_APIKEY=${{ secrets.CLOUDANT_APIKEY }}
