@@ -123,7 +123,13 @@ def _build_selector(
     if company:
         selector["company_name"] = {"$regex": f"(?i){company}"}
     if location:
-        selector["locations"] = {"$elemMatch": {"$regex": _expand_location(location)}}
+        loc_tokens = [s.strip() for s in location.split(",") if s.strip()]
+        if len(loc_tokens) == 1:
+            selector["locations"] = {"$elemMatch": {"$eq": loc_tokens[0]}}
+        elif len(loc_tokens) > 1:
+            selector["$or"] = [
+                {"locations": {"$elemMatch": {"$eq": t}}} for t in loc_tokens
+            ]
     if category:
         selector["categories"] = {"$elemMatch": {"$regex": f"(?i){category}"}}
     if level:
@@ -175,7 +181,13 @@ def search_jobs(
     if company:
         selector["company_name"] = {"$regex": f"(?i){company}"}
     if location:
-        selector["locations"] = {"$elemMatch": {"$eq": location}}
+        loc_tokens = [s.strip() for s in location.split(",") if s.strip()]
+        if len(loc_tokens) == 1:
+            selector["locations"] = {"$elemMatch": {"$eq": loc_tokens[0]}}
+        elif len(loc_tokens) > 1:
+            selector["$or"] = [
+                {"locations": {"$elemMatch": {"$eq": t}}} for t in loc_tokens
+            ]
     if category:
         selector["categories"] = {"$elemMatch": {"$regex": f"(?i){category}"}}
     if level:
