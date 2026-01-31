@@ -949,6 +949,18 @@
           "skip": {
             "type": "integer",
             "title": "Skip"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "Hint when no results are found"
           }
         },
         "type": "object",
@@ -1132,6 +1144,18 @@
             },
             "type": "array",
             "title": "Records"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "Hint when no results are found"
           }
         },
         "type": "object",
@@ -1186,6 +1210,18 @@
           "limit": {
             "type": "integer",
             "title": "Limit"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message",
+            "description": "Hint when no results are found"
           }
         },
         "type": "object",

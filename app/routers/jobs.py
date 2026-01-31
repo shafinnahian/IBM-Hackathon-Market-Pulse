@@ -132,6 +132,23 @@ def _build_selector(
     return selector
 
 
+def _validate_enum_filter(value: str, field: str) -> None:
+    """Raise 422 if value doesn't match any known entry for field."""
+    _load_filter_cache()
+    if field == "categories":
+        known = _cached_categories
+    elif field == "levels":
+        known = _cached_levels
+    else:
+        return
+    pattern = re.compile(re.escape(value), re.IGNORECASE)
+    if not any(pattern.search(v) for v in known):
+        raise HTTPException(
+            status_code=422,
+            detail=f"No matching {field} for '{value}'. Call get_job_filters?field={field} to discover valid values.",
+        )
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -168,6 +185,11 @@ def search_jobs(
     limit: int = Query(25, ge=1, le=100, description="Max results to return"),
     skip: int = Query(0, ge=0, description="Number of results to skip for pagination"),
 ) -> JobSearchResponse:
+    if category:
+        _validate_enum_filter(category, "categories")
+    if level:
+        _validate_enum_filter(level, "levels")
+
     client = get_cloudant()
 
     if source:
@@ -198,11 +220,19 @@ def search_jobs(
         all_docs.sort(key=lambda d: d.get("posted_at", ""), reverse=True)
         jobs = [_doc_to_summary(d) for d in all_docs]
 
+    message = None
+    if not jobs:
+        message = (
+            "No results found. Try broadening your search by removing filters, "
+            "or call get_job_filters to check available filter values."
+        )
+
     return JobSearchResponse(
         total_results=len(jobs),
         jobs=jobs,
         limit=limit,
         skip=skip,
+        message=message,
     )
 
 
@@ -383,6 +413,11 @@ def trending_skills(
     ),
     limit: int = Query(15, ge=1, le=50, description="Max skills to return (default 15, max 50)"),
 ) -> TrendingSkillsResponse:
+    if category:
+        _validate_enum_filter(category, "categories")
+    if level:
+        _validate_enum_filter(level, "levels")
+
     client = get_cloudant()
 
     max_docs_per_source = 2000
@@ -444,10 +479,18 @@ def trending_skills(
         for skill, count in counter.most_common(limit)
     ]
 
+    message = None
+    if jobs_analyzed == 0:
+        message = (
+            "No matching jobs found for the given filters. Try broadening your search "
+            "by removing filters, or call get_job_filters to check available filter values."
+        )
+
     return TrendingSkillsResponse(
         skills=top_skills,
         jobs_analyzed=jobs_analyzed,
         limit=limit,
+        message=message,
     )
 
 

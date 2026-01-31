@@ -117,8 +117,16 @@ def search_salaries(
             median_salary=round(statistics.median(midpoints), 2),
         )
 
+    message = None
+    if not records:
+        message = (
+            "No salary data found for the given filters. Try broadening your search "
+            "by removing the location or company filter, or using a more general job title."
+        )
+
     return SalaryResponse(
         count=len(records),
         aggregation=aggregation,
         records=records,
+        message=message,
     )

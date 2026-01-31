@@ -42,6 +42,7 @@ class JobSearchResponse(BaseModel):
     jobs: list[JobSummary]
     limit: int
     skip: int
+    message: str | None = Field(None, description="Hint when no results are found")
 
 
 class JobMatchResponse(BaseModel):
@@ -82,6 +83,7 @@ class TrendingSkillsResponse(BaseModel):
     skills: list[TrendingSkill]
     jobs_analyzed: int = Field(..., description="Total job descriptions scanned")
     limit: int
+    message: str | None = Field(None, description="Hint when no results are found")
 
 
 # ---------------------------------------------------------------------------
@@ -114,3 +116,4 @@ class SalaryResponse(BaseModel):
     count: int = Field(..., description="Number of matching salary records")
     aggregation: SalaryAggregation | None = Field(None, description="Aggregate stats (null if no results)")
     records: list[SalaryRecord]
+    message: str | None = Field(None, description="Hint when no results are found")
