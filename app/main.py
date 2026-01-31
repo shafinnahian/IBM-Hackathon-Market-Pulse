@@ -7,10 +7,13 @@ app = FastAPI(
     title="Market Pulse API",
     description=(
         "Job market intelligence API providing tech job listings and salary benchmarks. "
-        "Search jobs by title, company, location, category, or level. "
+        "Search jobs from The Muse and Adzuna by title, company, location, category, or level. "
         "Compare compensation across cities, experience levels, and companies."
     ),
     version="1.0.0",
+    servers=[
+        {"url": "https://market-pulse-app.25raqj64rgw0.us-south.codeengine.appdomain.cloud"},
+    ],
 )
 
 app.add_middleware(

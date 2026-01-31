@@ -1,0 +1,1372 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Market Pulse API",
+    "description": "Job market intelligence API providing tech job listings and salary benchmarks. Search jobs from The Muse and Adzuna by title, company, location, category, or level. Compare compensation across cities, experience levels, and companies.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://market-pulse-app.25raqj64rgw0.us-south.codeengine.appdomain.cloud"
+    }
+  ],
+  "paths": {
+    "/jobs/search": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Search job listings by title, company, location, category, or level",
+        "description": "Search tech job listings from The Muse and Adzuna. All text filters are case-insensitive partial matches. Combine multiple filters to narrow results. Use the 'source' parameter to filter by data source ('themuse' or 'adzuna'). Adzuna jobs include salary data visible in the detail endpoint. The 'level' filter only applies to Muse jobs.",
+        "operationId": "search_jobs",
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Job title keyword, e.g. 'Data Scientist'",
+              "title": "Title"
+            },
+            "description": "Job title keyword, e.g. 'Data Scientist'"
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Company name, e.g. 'Google'",
+              "title": "Company"
+            },
+            "description": "Company name, e.g. 'Google'"
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "City or region, e.g. 'New York'",
+              "title": "Location"
+            },
+            "description": "City or region, e.g. 'New York'"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Job category, e.g. 'Software Engineering', 'Data Science', 'IT Jobs'",
+              "title": "Category"
+            },
+            "description": "Job category, e.g. 'Software Engineering', 'Data Science', 'IT Jobs'"
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Seniority level: 'Entry Level', 'Mid Level', or 'Senior Level' (Muse jobs only)",
+              "title": "Level"
+            },
+            "description": "Seniority level: 'Entry Level', 'Mid Level', or 'Senior Level' (Muse jobs only)"
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by data source: 'themuse', 'adzuna', or omit for both",
+              "title": "Source"
+            },
+            "description": "Filter by data source: 'themuse', 'adzuna', or omit for both"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Max results to return",
+              "default": 25,
+              "title": "Limit"
+            },
+            "description": "Max results to return"
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Skip"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobSearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/trending-skills": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Get the most frequently mentioned tech skills across job listings",
+        "description": "Analyzes job descriptions matching the given filters and returns the most frequently mentioned tech skills, ranked by frequency. Useful for answering questions like 'What are the hottest skills for AI right now?' or 'Top skills for backend dev in California?'",
+        "operationId": "trending_skills",
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Job title keyword, e.g. 'machine learning'",
+              "title": "Title"
+            },
+            "description": "Job title keyword, e.g. 'machine learning'"
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Company name filter",
+              "title": "Company"
+            },
+            "description": "Company name filter"
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "City or region, e.g. 'California'",
+              "title": "Location"
+            },
+            "description": "City or region, e.g. 'California'"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Job category, e.g. 'Data Science', 'Software Engineering'",
+              "title": "Category"
+            },
+            "description": "Job category, e.g. 'Data Science', 'Software Engineering'"
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Seniority level: 'Entry Level', 'Mid Level', or 'Senior Level'",
+              "title": "Level"
+            },
+            "description": "Seniority level: 'Entry Level', 'Mid Level', or 'Senior Level'"
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by data source: 'themuse', 'adzuna', or omit for both",
+              "title": "Source"
+            },
+            "description": "Filter by data source: 'themuse', 'adzuna', or omit for both"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "description": "Max skills to return (default 15, max 50)",
+              "default": 15,
+              "title": "Limit"
+            },
+            "description": "Max skills to return (default 15, max 50)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendingSkillsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/match-skills": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Find jobs matching a set of skills",
+        "description": "Takes a comma-separated list of skills and returns jobs whose descriptions mention those skills, ranked by how many skills match. Useful for matching a candidate's resume skills to relevant job listings.",
+        "operationId": "match_skills",
+        "parameters": [
+          {
+            "name": "skills",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated skills, e.g. 'Python,SQL,React,AWS'",
+              "title": "Skills"
+            },
+            "description": "Comma-separated skills, e.g. 'Python,SQL,React,AWS'"
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by data source: 'themuse', 'adzuna', or omit for both",
+              "title": "Source"
+            },
+            "description": "Filter by data source: 'themuse', 'adzuna', or omit for both"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Max results to return",
+              "default": 25,
+              "title": "Limit"
+            },
+            "description": "Max results to return"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobMatchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/jobs/{doc_id}": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Get full details of a specific job listing",
+        "description": "Retrieve complete job information including the full description text. Use the document ID from search results. Works for both Muse and Adzuna jobs. Adzuna jobs may include salary_min and salary_max fields.",
+        "operationId": "get_job_by_id",
+        "parameters": [
+          {
+            "name": "doc_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Doc Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/salaries/by-location": {
+      "get": {
+        "tags": [
+          "Salaries"
+        ],
+        "summary": "Get salary data for a job title by city/location",
+        "description": "Returns salary benchmarks for a given role across cities. Omit location to get all available cities for comparison.",
+        "operationId": "get_salary_by_location",
+        "parameters": [
+          {
+            "name": "job_title",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Job role, e.g. 'Software Engineer', 'Data Scientist'",
+              "title": "Job Title"
+            },
+            "description": "Job role, e.g. 'Software Engineer', 'Data Scientist'"
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "City name, e.g. 'San Francisco', 'New York'",
+              "title": "Location"
+            },
+            "description": "City name, e.g. 'San Francisco', 'New York'"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/salaries/by-experience": {
+      "get": {
+        "tags": [
+          "Salaries"
+        ],
+        "summary": "Get salary data by years of experience for a job title",
+        "description": "Shows how compensation scales with experience. Available brackets: LESS_THAN_ONE, ONE_TO_THREE, FOUR_TO_SIX, SEVEN_TO_NINE, TEN_PLUS.",
+        "operationId": "get_salary_by_experience",
+        "parameters": [
+          {
+            "name": "job_title",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Job role, e.g. 'Software Engineer'",
+              "title": "Job Title"
+            },
+            "description": "Job role, e.g. 'Software Engineer'"
+          },
+          {
+            "name": "years_of_experience",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Experience bracket: LESS_THAN_ONE, ONE_TO_THREE, FOUR_TO_SIX, SEVEN_TO_NINE, or TEN_PLUS",
+              "title": "Years Of Experience"
+            },
+            "description": "Experience bracket: LESS_THAN_ONE, ONE_TO_THREE, FOUR_TO_SIX, SEVEN_TO_NINE, or TEN_PLUS"
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "City name to filter by",
+              "title": "Location"
+            },
+            "description": "City name to filter by"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/salaries/by-company": {
+      "get": {
+        "tags": [
+          "Salaries"
+        ],
+        "summary": "Get company-specific salary data for a job title",
+        "description": "Returns salary data at specific companies. Omit company to see all available companies for a role.",
+        "operationId": "get_salary_by_company",
+        "parameters": [
+          {
+            "name": "job_title",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Job role, e.g. 'Software Engineer'",
+              "title": "Job Title"
+            },
+            "description": "Job role, e.g. 'Software Engineer'"
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Company name, e.g. 'Google', 'Amazon'",
+              "title": "Company"
+            },
+            "description": "Company name, e.g. 'Google', 'Amazon'"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/salaries/compare": {
+      "get": {
+        "tags": [
+          "Salaries"
+        ],
+        "summary": "Compare salaries for a role across locations or companies",
+        "description": "Side-by-side salary comparison. Provide locations and/or companies to compare. At least one of locations or companies must be provided.",
+        "operationId": "compare_salaries",
+        "parameters": [
+          {
+            "name": "job_title",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Job role to compare",
+              "title": "Job Title"
+            },
+            "description": "Job role to compare"
+          },
+          {
+            "name": "locations",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Cities to compare, e.g. 'New York'",
+              "title": "Locations"
+            },
+            "description": "Cities to compare, e.g. 'New York'"
+          },
+          {
+            "name": "companies",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Companies to compare, e.g. 'Google'",
+              "title": "Companies"
+            },
+            "description": "Companies to compare, e.g. 'Google'"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SalaryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "JobDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Document ID"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Job title"
+          },
+          "company": {
+            "type": "string",
+            "title": "Company",
+            "description": "Company name"
+          },
+          "locations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Locations",
+            "description": "Job locations"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories",
+            "description": "Job categories like Software Engineering"
+          },
+          "levels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Levels",
+            "description": "Seniority levels like Mid Level, Senior Level"
+          },
+          "publication_date": {
+            "type": "string",
+            "title": "Publication Date",
+            "description": "ISO 8601 publication date",
+            "default": ""
+          },
+          "landing_page_url": {
+            "type": "string",
+            "title": "Landing Page Url",
+            "description": "Link to the full job posting",
+            "default": ""
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "Data source: 'themuse' or 'adzuna'",
+            "default": ""
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Full plain-text job description",
+            "default": ""
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id",
+            "description": "External platform job ID"
+          },
+          "salary_min": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Salary Min",
+            "description": "Minimum salary in USD/year (Adzuna jobs only)"
+          },
+          "salary_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Salary Max",
+            "description": "Maximum salary in USD/year (Adzuna jobs only)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "company"
+        ],
+        "title": "JobDetail",
+        "description": "Full job listing including description."
+      },
+      "JobMatchResponse": {
+        "properties": {
+          "total_results": {
+            "type": "integer",
+            "title": "Total Results",
+            "description": "Number of jobs returned in this response"
+          },
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/JobMatchSummary"
+            },
+            "type": "array",
+            "title": "Jobs"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_results",
+          "jobs",
+          "limit"
+        ],
+        "title": "JobMatchResponse",
+        "description": "Skill-matched job results, ranked by match count."
+      },
+      "JobMatchSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Document ID"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Job title"
+          },
+          "company": {
+            "type": "string",
+            "title": "Company",
+            "description": "Company name"
+          },
+          "locations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Locations",
+            "description": "Job locations"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories",
+            "description": "Job categories like Software Engineering"
+          },
+          "levels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Levels",
+            "description": "Seniority levels like Mid Level, Senior Level"
+          },
+          "publication_date": {
+            "type": "string",
+            "title": "Publication Date",
+            "description": "ISO 8601 publication date",
+            "default": ""
+          },
+          "landing_page_url": {
+            "type": "string",
+            "title": "Landing Page Url",
+            "description": "Link to the full job posting",
+            "default": ""
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "Data source: 'themuse' or 'adzuna'",
+            "default": ""
+          },
+          "matched_skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Matched Skills",
+            "description": "Skills found in the job description"
+          },
+          "match_count": {
+            "type": "integer",
+            "title": "Match Count",
+            "description": "Number of skills matched",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "company"
+        ],
+        "title": "JobMatchSummary",
+        "description": "Job listing with skill match info."
+      },
+      "JobSearchResponse": {
+        "properties": {
+          "total_results": {
+            "type": "integer",
+            "title": "Total Results",
+            "description": "Number of jobs returned in this response"
+          },
+          "jobs": {
+            "items": {
+              "$ref": "#/components/schemas/JobSummary"
+            },
+            "type": "array",
+            "title": "Jobs"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "skip": {
+            "type": "integer",
+            "title": "Skip"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_results",
+          "jobs",
+          "limit",
+          "skip"
+        ],
+        "title": "JobSearchResponse",
+        "description": "Paginated job search results."
+      },
+      "JobSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Document ID"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Job title"
+          },
+          "company": {
+            "type": "string",
+            "title": "Company",
+            "description": "Company name"
+          },
+          "locations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Locations",
+            "description": "Job locations"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories",
+            "description": "Job categories like Software Engineering"
+          },
+          "levels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Levels",
+            "description": "Seniority levels like Mid Level, Senior Level"
+          },
+          "publication_date": {
+            "type": "string",
+            "title": "Publication Date",
+            "description": "ISO 8601 publication date",
+            "default": ""
+          },
+          "landing_page_url": {
+            "type": "string",
+            "title": "Landing Page Url",
+            "description": "Link to the full job posting",
+            "default": ""
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "Data source: 'themuse' or 'adzuna'",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "company"
+        ],
+        "title": "JobSummary",
+        "description": "Compact job listing returned in search results."
+      },
+      "SalaryInfo": {
+        "properties": {
+          "median_salary": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Salary",
+            "description": "Total median compensation in USD/year"
+          },
+          "min_salary": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Salary",
+            "description": "Minimum reported salary"
+          },
+          "max_salary": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Salary",
+            "description": "Maximum reported salary"
+          },
+          "median_base_salary": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Base Salary",
+            "description": "Median base salary excluding bonuses/equity"
+          },
+          "salary_currency": {
+            "type": "string",
+            "title": "Salary Currency",
+            "description": "Currency code",
+            "default": "USD"
+          },
+          "salary_period": {
+            "type": "string",
+            "title": "Salary Period",
+            "description": "Pay period",
+            "default": "YEAR"
+          },
+          "publisher_name": {
+            "type": "string",
+            "title": "Publisher Name",
+            "description": "Data source publisher",
+            "default": ""
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence",
+            "description": "Confidence level of the estimate",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "title": "SalaryInfo",
+        "description": "Core salary data."
+      },
+      "SalaryRecord": {
+        "properties": {
+          "job_title": {
+            "type": "string",
+            "title": "Job Title",
+            "description": "Job role title"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location",
+            "description": "City or region"
+          },
+          "years_of_experience": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Years Of Experience",
+            "description": "Experience bracket, e.g. ONE_TO_THREE"
+          },
+          "company": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company",
+            "description": "Company name"
+          },
+          "salary": {
+            "$ref": "#/components/schemas/SalaryInfo"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_title",
+          "salary"
+        ],
+        "title": "SalaryRecord",
+        "description": "A single salary data point with context."
+      },
+      "SalaryResponse": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of matching salary records"
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SalaryRecord"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "data"
+        ],
+        "title": "SalaryResponse",
+        "description": "Salary query results."
+      },
+      "TrendingSkill": {
+        "properties": {
+          "skill": {
+            "type": "string",
+            "title": "Skill",
+            "description": "Skill name, e.g. 'Python'"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of job descriptions mentioning this skill"
+          },
+          "percentage": {
+            "type": "number",
+            "title": "Percentage",
+            "description": "count / jobs_analyzed * 100"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill",
+          "count",
+          "percentage"
+        ],
+        "title": "TrendingSkill",
+        "description": "A single skill with its frequency stats."
+      },
+      "TrendingSkillsResponse": {
+        "properties": {
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/TrendingSkill"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "jobs_analyzed": {
+            "type": "integer",
+            "title": "Jobs Analyzed",
+            "description": "Total job descriptions scanned"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skills",
+          "jobs_analyzed",
+          "limit"
+        ],
+        "title": "TrendingSkillsResponse",
+        "description": "Top trending skills extracted from job descriptions."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

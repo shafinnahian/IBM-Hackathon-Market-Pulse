@@ -16,14 +16,23 @@ class JobSummary(BaseModel):
     levels: list[str] = Field(default_factory=list, description="Seniority levels like Mid Level, Senior Level")
     publication_date: str = Field("", description="ISO 8601 publication date")
     landing_page_url: str = Field("", description="Link to the full job posting")
+    source: str = Field("", description="Data source: 'themuse' or 'adzuna'")
 
 
 class JobDetail(JobSummary):
     """Full job listing including description."""
 
     description: str = Field("", description="Full plain-text job description")
-    source: str = Field("", description="Data source (e.g. themuse)")
-    muse_id: int | None = Field(None, description="The Muse platform job ID")
+    external_id: str | None = Field(None, description="External platform job ID")
+    salary_min: float | None = Field(None, description="Minimum salary in USD/year (Adzuna jobs only)")
+    salary_max: float | None = Field(None, description="Maximum salary in USD/year (Adzuna jobs only)")
+
+
+class JobMatchSummary(JobSummary):
+    """Job listing with skill match info."""
+
+    matched_skills: list[str] = Field(default_factory=list, description="Skills found in the job description")
+    match_count: int = Field(0, description="Number of skills matched")
 
 
 class JobSearchResponse(BaseModel):
@@ -33,6 +42,34 @@ class JobSearchResponse(BaseModel):
     jobs: list[JobSummary]
     limit: int
     skip: int
+
+
+class JobMatchResponse(BaseModel):
+    """Skill-matched job results, ranked by match count."""
+
+    total_results: int = Field(..., description="Number of jobs returned in this response")
+    jobs: list[JobMatchSummary]
+    limit: int
+
+
+# ---------------------------------------------------------------------------
+# Trending skills models
+# ---------------------------------------------------------------------------
+
+class TrendingSkill(BaseModel):
+    """A single skill with its frequency stats."""
+
+    skill: str = Field(..., description="Skill name, e.g. 'Python'")
+    count: int = Field(..., description="Number of job descriptions mentioning this skill")
+    percentage: float = Field(..., description="count / jobs_analyzed * 100")
+
+
+class TrendingSkillsResponse(BaseModel):
+    """Top trending skills extracted from job descriptions."""
+
+    skills: list[TrendingSkill]
+    jobs_analyzed: int = Field(..., description="Total job descriptions scanned")
+    limit: int
 
 
 # ---------------------------------------------------------------------------

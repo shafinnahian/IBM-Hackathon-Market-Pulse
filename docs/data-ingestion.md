@@ -6,11 +6,11 @@ This document covers how salary and job data is ingested into Cloudant for the M
 
 ```
 Job Salary Data API (OpenWeb Ninja)  ──→  Cloudant DB: salary_data
-Adzuna API                           ──→  Cloudant DB: job_listings
-The Muse API                         ──→  Cloudant DB: muse_jobs
+Adzuna API                           ──→  Cloudant DB: market_pulse_jobs
+The Muse API                         ──→  Cloudant DB: market_pulse_jobs
 ```
 
-Three separate Cloudant databases store data from different APIs. They share common fields (`job_title`/`title`, `location`/`locations`, `company`) that can be used to cross-reference.
+Two Cloudant databases store data from different APIs. Salary benchmarks live in `salary_data`. All job postings (from both Adzuna and The Muse) live in `market_pulse_jobs`, distinguished by the `source` field (`"adzuna"` or `"themuse"`).
 
 ## Cloudant Instance
 
@@ -64,29 +64,9 @@ Salary benchmarks from the Job Salary Data API (Glassdoor source).
 - `salary_by_experience` — salary for a role at different experience levels
 - `salary_by_company` — salary for a role at a specific company
 
-### `job_listings`
+### `job_listings` (legacy)
 
-Job postings from the Adzuna API (managed by another team member).
-
-**Document schema (from Adzuna):**
-
-```json
-{
-  "_id": "auto-generated",
-  "type": "job_listing",
-  "adzuna_id": "5568088167",
-  "title": "Python Architect",
-  "description": "Job description text...",
-  "company": "STAFFING TECHNOLOGIES",
-  "location": "San Antonio, Bexar County",
-  "location_area": ["US", "Texas", "Bexar County", "San Antonio"],
-  "category": "IT Jobs",
-  "salary_min": 119282.40,
-  "salary_max": 119282.40,
-  "created": "2026-01-05T10:41:12Z",
-  "redirect_url": "https://www.adzuna.com/..."
-}
-```
+Old Adzuna job postings database. Superseded by `market_pulse_jobs` — all Adzuna data has been migrated there. Kept for reference only.
 
 ## Ingestion Script
 
@@ -137,30 +117,35 @@ python scripts/ingest_salaries.py --batch experience --dry-run
 
 **Companies batch:** Software Engineer, Data Scientist, ML Engineer, Product Manager, DevOps Engineer — at Google, Amazon, Microsoft, Apple, Meta, Netflix, Nvidia, Salesforce, Adobe, IBM, Oracle, Uber, Airbnb, Stripe, Coinbase
 
-### `muse_jobs`
+### `market_pulse_jobs`
 
-Job listings from The Muse public API.
+Unified job listings database containing postings from both Adzuna and The Muse. All documents have `type: "job_post"` and are distinguished by the `source` field.
 
-**Document schema:**
+**Unified document schema (all sources):**
 
 ```json
 {
-  "_id": "auto-generated",
-  "type": "muse_job",
-  "source": "themuse",
-  "muse_id": 18012186,
-  "title": "DevOps Engineer",
-  "company": "Merge",
-  "locations": ["San Francisco, CA"],
-  "categories": ["Software Engineering"],
-  "levels": ["Mid Level"],
-  "publication_date": "2026-01-27T23:32:21Z",
-  "description": "Plain text job description (HTML stripped)",
-  "landing_page_url": "https://www.themuse.com/jobs/merge/devops-engineer-637902"
+  "_id": "job_post:{source}:{id}",
+  "type": "job_post",
+  "source": "adzuna | themuse",
+  "external_id": "12345",
+  "title_raw": "Senior Backend Developer",
+  "company_name": "Allnessinc",
+  "description_raw": "Job description text...",
+  "url": "https://...",
+  "posted_at": "2021-09-02T08:30:09Z",
+  "fetched_at": "2026-01-31T00:13:07Z",
+  "locations": ["Brooklyn, New York City"],
+  "categories": ["IT Jobs"],
+  "levels": ["Mid Level"]
 }
 ```
 
-**Current data:** ~8,081 documents (4 categories × 3 levels, ingested via `tech-all` batch).
+**Adzuna-specific extra fields:** `salary_min`, `salary_max`, `latitude`, `longitude`, `location_area` (area hierarchy list), `category_tag`
+
+**Muse-specific extra fields:** `company_id`, `role_id`
+
+**Current data:** ~1,986 Adzuna docs + ~8,082 Muse docs.
 
 ## Muse Jobs Ingestion Script
 
@@ -201,7 +186,7 @@ python scripts/ingest_muse_jobs.py --batch tech-all --dry-run
 
 ### Deduplication
 
-The script queries Cloudant for existing `muse_id` values before inserting, so it is safe to re-run. Duplicate jobs are skipped automatically.
+The script queries Cloudant for existing job IDs before inserting, so it is safe to re-run. Duplicate jobs are skipped automatically.
 
 ### Status
 
