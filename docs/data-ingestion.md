@@ -121,45 +121,31 @@ python scripts/ingest_salaries.py --batch experience --dry-run
 
 Unified job listings database containing postings from both Adzuna and The Muse. All documents have `type: "job_post"` and are distinguished by the `source` field.
 
-**Adzuna document schema (raw):**
+**Unified document schema (all sources):**
 
 ```json
 {
-  "_id": "job_post:adzuna:{id}",
+  "_id": "job_post:{source}:{id}",
   "type": "job_post",
-  "source": "adzuna",
-  "title": "Python Architect",
-  "description": "Job description text...",
-  "company": {"display_name": "STAFFING TECHNOLOGIES"},
-  "location": {"display_name": "San Antonio, Bexar County", "area": ["US", "Texas"]},
-  "category": {"label": "IT Jobs", "tag": "it-jobs"},
-  "salary_min": 119282.40,
-  "salary_max": 119282.40,
-  "created": "2026-01-05T10:41:12Z",
-  "url": "https://www.adzuna.com/..."
+  "source": "adzuna | themuse",
+  "external_id": "12345",
+  "title_raw": "Senior Backend Developer",
+  "company_name": "Allnessinc",
+  "description_raw": "Job description text...",
+  "url": "https://...",
+  "posted_at": "2021-09-02T08:30:09Z",
+  "fetched_at": "2026-01-31T00:13:07Z",
+  "locations": ["Brooklyn, New York City"],
+  "categories": ["IT Jobs"],
+  "levels": ["Mid Level"]
 }
 ```
 
-**Muse document schema (normalized):**
+**Adzuna-specific extra fields:** `salary_min`, `salary_max`, `latitude`, `longitude`, `location_area` (area hierarchy list), `category_tag`
 
-```json
-{
-  "_id": "job_post:themuse:{id}",
-  "type": "job_post",
-  "source": "themuse",
-  "external_id": "18012186",
-  "title_raw": "DevOps Engineer",
-  "company_name": "Merge",
-  "locations": ["San Francisco, CA"],
-  "categories": ["Software Engineering"],
-  "levels": ["Mid Level"],
-  "posted_at": "2026-01-27T23:32:21Z",
-  "description_raw": "Plain text job description (HTML stripped)",
-  "url": "https://www.themuse.com/jobs/merge/devops-engineer-637902"
-}
-```
+**Muse-specific extra fields:** `company_id`, `role_id`
 
-**Current data:** ~1,986 Adzuna docs + ~4,058 Muse docs (growing).
+**Current data:** ~1,986 Adzuna docs + ~8,082 Muse docs.
 
 ## Muse Jobs Ingestion Script
 

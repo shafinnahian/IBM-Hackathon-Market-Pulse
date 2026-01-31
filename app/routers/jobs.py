@@ -1,8 +1,8 @@
+import re
+
 from fastapi import APIRouter, HTTPException, Query
 
 from app.database import get_cloudant
-import re
-
 from app.models import JobDetail, JobMatchResponse, JobMatchSummary, JobSearchResponse, JobSummary
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
@@ -11,40 +11,10 @@ DB_NAME = "market_pulse_jobs"
 
 
 # ---------------------------------------------------------------------------
-# Adzuna field extractors (handle dict / string / None defensively)
+# Unified doc → model converters
 # ---------------------------------------------------------------------------
 
-def _extract_company(raw) -> str:
-    if isinstance(raw, dict):
-        return raw.get("display_name", "")
-    if isinstance(raw, str):
-        return raw
-    return ""
-
-
-def _extract_locations(raw) -> list[str]:
-    if isinstance(raw, dict):
-        name = raw.get("display_name", "")
-        return [name] if name else []
-    if isinstance(raw, str):
-        return [raw] if raw else []
-    return []
-
-
-def _extract_categories(raw) -> list[str]:
-    if isinstance(raw, dict):
-        label = raw.get("label", "")
-        return [label] if label else []
-    if isinstance(raw, str):
-        return [raw] if raw else []
-    return []
-
-
-# ---------------------------------------------------------------------------
-# Muse (normalized) doc → model converters
-# ---------------------------------------------------------------------------
-
-def _muse_doc_to_summary(doc: dict) -> JobSummary:
+def _doc_to_summary(doc: dict) -> JobSummary:
     return JobSummary(
         id=doc.get("_id", ""),
         title=doc.get("title_raw", ""),
@@ -54,11 +24,11 @@ def _muse_doc_to_summary(doc: dict) -> JobSummary:
         levels=doc.get("levels", []),
         publication_date=doc.get("posted_at", ""),
         landing_page_url=doc.get("url", ""),
-        source=doc.get("source", "themuse"),
+        source=doc.get("source", ""),
     )
 
 
-def _muse_doc_to_detail(doc: dict) -> JobDetail:
+def _doc_to_detail(doc: dict) -> JobDetail:
     return JobDetail(
         id=doc.get("_id", ""),
         title=doc.get("title_raw", ""),
@@ -69,63 +39,11 @@ def _muse_doc_to_detail(doc: dict) -> JobDetail:
         publication_date=doc.get("posted_at", ""),
         landing_page_url=doc.get("url", ""),
         description=doc.get("description_raw", ""),
-        source=doc.get("source", "themuse"),
+        source=doc.get("source", ""),
         external_id=str(doc.get("external_id")) if doc.get("external_id") is not None else None,
-        salary_min=None,
-        salary_max=None,
-    )
-
-
-# ---------------------------------------------------------------------------
-# Adzuna (raw) doc → model converters
-# ---------------------------------------------------------------------------
-
-def _adzuna_doc_to_summary(doc: dict) -> JobSummary:
-    return JobSummary(
-        id=doc.get("_id", ""),
-        title=doc.get("title", ""),
-        company=_extract_company(doc.get("company")),
-        locations=_extract_locations(doc.get("location")),
-        categories=_extract_categories(doc.get("category")),
-        levels=[],
-        publication_date=doc.get("created", ""),
-        landing_page_url=doc.get("url", ""),
-        source="adzuna",
-    )
-
-
-def _adzuna_doc_to_detail(doc: dict) -> JobDetail:
-    return JobDetail(
-        id=doc.get("_id", ""),
-        title=doc.get("title", ""),
-        company=_extract_company(doc.get("company")),
-        locations=_extract_locations(doc.get("location")),
-        categories=_extract_categories(doc.get("category")),
-        levels=[],
-        publication_date=doc.get("created", ""),
-        landing_page_url=doc.get("url", ""),
-        description=doc.get("description", ""),
-        source="adzuna",
-        external_id=None,
         salary_min=doc.get("salary_min"),
         salary_max=doc.get("salary_max"),
     )
-
-
-# ---------------------------------------------------------------------------
-# Converter dispatch based on source field
-# ---------------------------------------------------------------------------
-
-def _doc_to_summary(doc: dict) -> JobSummary:
-    if doc.get("source") == "adzuna":
-        return _adzuna_doc_to_summary(doc)
-    return _muse_doc_to_summary(doc)
-
-
-def _doc_to_detail(doc: dict) -> JobDetail:
-    if doc.get("source") == "adzuna":
-        return _adzuna_doc_to_detail(doc)
-    return _muse_doc_to_detail(doc)
 
 
 # ---------------------------------------------------------------------------
@@ -144,65 +62,16 @@ def _build_selector(
 
     if source:
         selector["source"] = source
-
-    # When source is known, use only that source's field names.
-    # Otherwise use $or across both schemas.
-    is_muse = source == "themuse"
-    is_adzuna = source == "adzuna"
-
     if title:
-        regex = {"$regex": f"(?i){title}"}
-        if is_muse:
-            selector["title_raw"] = regex
-        elif is_adzuna:
-            selector["title"] = regex
-        else:
-            selector.setdefault("$and", []).append(
-                {"$or": [{"title_raw": regex}, {"title": regex}]}
-            )
-
+        selector["title_raw"] = {"$regex": f"(?i){title}"}
     if company:
-        regex = {"$regex": f"(?i){company}"}
-        if is_muse:
-            selector["company_name"] = regex
-        elif is_adzuna:
-            selector["company.display_name"] = regex
-        else:
-            selector.setdefault("$and", []).append(
-                {"$or": [{"company_name": regex}, {"company.display_name": regex}]}
-            )
-
+        selector["company_name"] = {"$regex": f"(?i){company}"}
     if location:
-        regex = {"$regex": f"(?i){location}"}
-        if is_muse:
-            selector["locations"] = {"$elemMatch": regex}
-        elif is_adzuna:
-            selector["location.display_name"] = regex
-        else:
-            selector.setdefault("$and", []).append(
-                {"$or": [
-                    {"locations": {"$elemMatch": regex}},
-                    {"location.display_name": regex},
-                ]}
-            )
-
+        selector["locations"] = {"$elemMatch": {"$regex": f"(?i){location}"}}
     if category:
-        regex = {"$regex": f"(?i){category}"}
-        if is_muse:
-            selector["categories"] = {"$elemMatch": regex}
-        elif is_adzuna:
-            selector["category.label"] = regex
-        else:
-            selector.setdefault("$and", []).append(
-                {"$or": [
-                    {"categories": {"$elemMatch": regex}},
-                    {"category.label": regex},
-                ]}
-            )
-
+        selector["categories"] = {"$elemMatch": {"$regex": f"(?i){category}"}}
     if level:
-        regex = {"$regex": f"(?i){level}"}
-        selector["levels"] = {"$elemMatch": regex}
+        selector["levels"] = {"$elemMatch": {"$regex": f"(?i){level}"}}
 
     return selector
 
@@ -246,7 +115,6 @@ def search_jobs(
     client = get_cloudant()
 
     if source:
-        # Single-source query
         selector = _build_selector(title, company, location, category, level, source)
         result = client.post_find(
             db=DB_NAME, selector=selector, limit=limit, skip=skip,
@@ -271,10 +139,7 @@ def search_jobs(
         ).get_result().get("docs", [])
 
         all_docs = muse_docs + adzuna_docs
-        all_docs.sort(
-            key=lambda d: d.get("posted_at") or d.get("created") or "",
-            reverse=True,
-        )
+        all_docs.sort(key=lambda d: d.get("posted_at", ""), reverse=True)
         jobs = [_doc_to_summary(d) for d in all_docs]
 
     return JobSearchResponse(
@@ -286,32 +151,14 @@ def search_jobs(
 
 
 # ---------------------------------------------------------------------------
-# Skills matching helpers
+# Skills matching
 # ---------------------------------------------------------------------------
-
-def _get_description(doc: dict) -> str:
-    """Get description text from either schema."""
-    return doc.get("description_raw") or doc.get("description") or ""
-
 
 def _score_skills(doc: dict, skills: list[str]) -> tuple[list[str], int]:
     """Return (matched_skills, count) for a doc against a list of skills."""
-    text = _get_description(doc).lower()
+    text = doc.get("description_raw", "").lower()
     matched = [s for s in skills if re.search(rf"\b{re.escape(s.lower())}\b", text)]
     return matched, len(matched)
-
-
-def _build_skills_selector(skills: list[str], source: str) -> dict:
-    """Build a Cloudant selector that matches any skill in the description."""
-    pattern = "|".join(re.escape(s) for s in skills)
-    regex = {"$regex": f"(?i)({pattern})"}
-
-    selector: dict = {"type": "job_post", "source": source}
-    if source == "themuse":
-        selector["description_raw"] = regex
-    else:
-        selector["description"] = regex
-    return selector
 
 
 @router.get(
@@ -342,23 +189,25 @@ def match_skills(
     if not skill_list:
         return JobMatchResponse(total_results=0, jobs=[], limit=limit)
 
+    pattern = "|".join(re.escape(s) for s in skill_list)
+    regex = {"$regex": f"(?i)({pattern})"}
     fetch_limit = limit * 4
 
     if source:
-        sel = _build_skills_selector(skill_list, source)
+        selector: dict = {"type": "job_post", "source": source, "description_raw": regex}
         docs = client.post_find(
-            db=DB_NAME, selector=sel, limit=fetch_limit,
+            db=DB_NAME, selector=selector, limit=fetch_limit,
         ).get_result().get("docs", [])
     else:
         half = fetch_limit // 2
         muse_docs = client.post_find(
             db=DB_NAME,
-            selector=_build_skills_selector(skill_list, "themuse"),
+            selector={"type": "job_post", "source": "themuse", "description_raw": regex},
             limit=half,
         ).get_result().get("docs", [])
         adzuna_docs = client.post_find(
             db=DB_NAME,
-            selector=_build_skills_selector(skill_list, "adzuna"),
+            selector={"type": "job_post", "source": "adzuna", "description_raw": regex},
             limit=half,
         ).get_result().get("docs", [])
         docs = muse_docs + adzuna_docs
