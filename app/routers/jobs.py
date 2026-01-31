@@ -60,6 +60,49 @@ def _doc_to_detail(doc: dict) -> JobDetail:
 
 
 # ---------------------------------------------------------------------------
+# Location aliases (state/region name → abbreviations used in DB)
+# ---------------------------------------------------------------------------
+
+_STATE_ABBREVIATIONS: dict[str, str] = {
+    "alabama": "AL", "alaska": "AK", "arizona": "AZ", "arkansas": "AR",
+    "california": "CA", "colorado": "CO", "connecticut": "CT", "delaware": "DE",
+    "florida": "FL", "georgia": "GA", "hawaii": "HI", "idaho": "ID",
+    "illinois": "IL", "indiana": "IN", "iowa": "IA", "kansas": "KS",
+    "kentucky": "KY", "louisiana": "LA", "maine": "ME", "maryland": "MD",
+    "massachusetts": "MA", "michigan": "MI", "minnesota": "MN",
+    "mississippi": "MS", "missouri": "MO", "montana": "MT", "nebraska": "NE",
+    "nevada": "NV", "new hampshire": "NH", "new jersey": "NJ",
+    "new mexico": "NM", "new york": "NY", "north carolina": "NC",
+    "north dakota": "ND", "ohio": "OH", "oklahoma": "OK", "oregon": "OR",
+    "pennsylvania": "PA", "rhode island": "RI", "south carolina": "SC",
+    "south dakota": "SD", "tennessee": "TN", "texas": "TX", "utah": "UT",
+    "vermont": "VT", "virginia": "VA", "washington": "WA",
+    "west virginia": "WV", "wisconsin": "WI", "wyoming": "WY",
+}
+
+# Reverse map: abbreviation → full name (for when user types "CA")
+_ABBREV_TO_STATE: dict[str, str] = {v.lower(): k for k, v in _STATE_ABBREVIATIONS.items()}
+
+
+def _expand_location(location: str) -> str:
+    """Build a regex that matches both the full state name and its abbreviation."""
+    loc_lower = location.lower().strip()
+
+    # User typed a full state name like "California" → match "California" OR "CA"
+    if loc_lower in _STATE_ABBREVIATIONS:
+        abbrev = _STATE_ABBREVIATIONS[loc_lower]
+        return f"(?i)({re.escape(location)}|,\\s*{re.escape(abbrev)}\\b)"
+
+    # User typed an abbreviation like "CA" → match "CA" OR "California"
+    if loc_lower in _ABBREV_TO_STATE:
+        full_name = _ABBREV_TO_STATE[loc_lower]
+        return f"(?i)({re.escape(location)}|{re.escape(full_name)})"
+
+    # No alias found, just do a normal case-insensitive match
+    return f"(?i){re.escape(location)}"
+
+
+# ---------------------------------------------------------------------------
 # Selector builder
 # ---------------------------------------------------------------------------
 
@@ -80,7 +123,7 @@ def _build_selector(
     if company:
         selector["company_name"] = {"$regex": f"(?i){company}"}
     if location:
-        selector["locations"] = {"$elemMatch": {"$regex": f"(?i){location}"}}
+        selector["locations"] = {"$elemMatch": {"$regex": _expand_location(location)}}
     if category:
         selector["categories"] = {"$elemMatch": {"$regex": f"(?i){category}"}}
     if level:
