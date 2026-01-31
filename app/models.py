@@ -53,6 +53,26 @@ class JobMatchResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Trending skills models
+# ---------------------------------------------------------------------------
+
+class TrendingSkill(BaseModel):
+    """A single skill with its frequency stats."""
+
+    skill: str = Field(..., description="Skill name, e.g. 'Python'")
+    count: int = Field(..., description="Number of job descriptions mentioning this skill")
+    percentage: float = Field(..., description="count / jobs_analyzed * 100")
+
+
+class TrendingSkillsResponse(BaseModel):
+    """Top trending skills extracted from job descriptions."""
+
+    skills: list[TrendingSkill]
+    jobs_analyzed: int = Field(..., description="Total job descriptions scanned")
+    limit: int
+
+
+# ---------------------------------------------------------------------------
 # Salary models
 # ---------------------------------------------------------------------------
 

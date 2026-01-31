@@ -1,9 +1,20 @@
 import re
+import time
+from collections import Counter
 
 from fastapi import APIRouter, HTTPException, Query
 
 from app.database import get_cloudant
-from app.models import JobDetail, JobMatchResponse, JobMatchSummary, JobSearchResponse, JobSummary
+from app.models import (
+    JobDetail,
+    JobMatchResponse,
+    JobMatchSummary,
+    JobSearchResponse,
+    JobSummary,
+    TrendingSkill,
+    TrendingSkillsResponse,
+)
+from app.skills import TECH_SKILLS
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
@@ -147,6 +158,112 @@ def search_jobs(
         jobs=jobs,
         limit=limit,
         skip=skip,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Trending skills
+# ---------------------------------------------------------------------------
+
+# Pre-compile per-skill regex patterns (case-insensitive, word-boundary)
+_SKILL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    (skill, re.compile(rf"\b{re.escape(skill)}\b", re.IGNORECASE))
+    for skill in sorted(TECH_SKILLS)
+]
+
+
+@router.get(
+    "/trending-skills",
+    response_model=TrendingSkillsResponse,
+    operation_id="trending_skills",
+    summary="Get the most frequently mentioned tech skills across job listings",
+    description=(
+        "Analyzes job descriptions matching the given filters and returns the most "
+        "frequently mentioned tech skills, ranked by frequency. Useful for answering "
+        "questions like 'What are the hottest skills for AI right now?' or 'Top skills "
+        "for backend dev in California?'"
+    ),
+)
+def trending_skills(
+    title: str | None = Query(None, description="Job title keyword, e.g. 'machine learning'"),
+    company: str | None = Query(None, description="Company name filter"),
+    location: str | None = Query(None, description="City or region, e.g. 'California'"),
+    category: str | None = Query(
+        None,
+        description="Job category, e.g. 'Data Science', 'Software Engineering'",
+    ),
+    level: str | None = Query(
+        None,
+        description="Seniority level: 'Entry Level', 'Mid Level', or 'Senior Level'",
+    ),
+    source: str | None = Query(
+        None,
+        description="Filter by data source: 'themuse', 'adzuna', or omit for both",
+    ),
+    limit: int = Query(15, ge=1, le=50, description="Max skills to return (default 15, max 50)"),
+) -> TrendingSkillsResponse:
+    client = get_cloudant()
+
+    def _fetch_all(selector: dict) -> list[dict]:
+        """Paginate through all matching docs using Cloudant bookmarks."""
+        docs: list[dict] = []
+        bookmark: str | None = None
+        page_size = 200
+        while True:
+            kwargs: dict = {"db": DB_NAME, "selector": selector, "limit": page_size}
+            if bookmark:
+                kwargs["bookmark"] = bookmark
+            for attempt in range(5):
+                try:
+                    result = client.post_find(**kwargs).get_result()
+                    break
+                except Exception as exc:
+                    if "429" in str(exc) and attempt < 4:
+                        time.sleep(1.0 * (attempt + 1))
+                        continue
+                    raise
+            page = result.get("docs", [])
+            if not page:
+                break
+            docs.extend(page)
+            bookmark = result.get("bookmark")
+            if not bookmark or len(page) < page_size:
+                break
+        return docs
+
+    if source:
+        selector = _build_selector(title, company, location, category, level, source)
+        docs = _fetch_all(selector)
+    else:
+        muse_sel = _build_selector(title, company, location, category, level, "themuse")
+        adzuna_sel = _build_selector(title, company, location, category, level, "adzuna")
+        docs = _fetch_all(muse_sel) + _fetch_all(adzuna_sel)
+
+    # Count skills across all descriptions (once per doc)
+    counter: Counter[str] = Counter()
+    jobs_analyzed = 0
+    for doc in docs:
+        text = doc.get("description_raw", "")
+        if not text:
+            continue
+        jobs_analyzed += 1
+        for skill_name, pattern in _SKILL_PATTERNS:
+            if pattern.search(text):
+                counter[skill_name] += 1
+
+    top_skills = [
+        TrendingSkill(
+            skill=skill,
+            count=count,
+            percentage=round(count / jobs_analyzed * 100, 1) if jobs_analyzed else 0,
+        )
+        for skill, count in counter.most_common(limit)
+    ]
+
+    return TrendingSkillsResponse(
+        skills=top_skills,
+        jobs_analyzed=jobs_analyzed,
+        limit=limit,
     )
 
 

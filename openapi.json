@@ -180,6 +180,162 @@
         }
       }
     },
+    "/jobs/trending-skills": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Get the most frequently mentioned tech skills across job listings",
+        "description": "Analyzes job descriptions matching the given filters and returns the most frequently mentioned tech skills, ranked by frequency. Useful for answering questions like 'What are the hottest skills for AI right now?' or 'Top skills for backend dev in California?'",
+        "operationId": "trending_skills",
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Job title keyword, e.g. 'machine learning'",
+              "title": "Title"
+            },
+            "description": "Job title keyword, e.g. 'machine learning'"
+          },
+          {
+            "name": "company",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Company name filter",
+              "title": "Company"
+            },
+            "description": "Company name filter"
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "City or region, e.g. 'California'",
+              "title": "Location"
+            },
+            "description": "City or region, e.g. 'California'"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Job category, e.g. 'Data Science', 'Software Engineering'",
+              "title": "Category"
+            },
+            "description": "Job category, e.g. 'Data Science', 'Software Engineering'"
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Seniority level: 'Entry Level', 'Mid Level', or 'Senior Level'",
+              "title": "Level"
+            },
+            "description": "Seniority level: 'Entry Level', 'Mid Level', or 'Senior Level'"
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by data source: 'themuse', 'adzuna', or omit for both",
+              "title": "Source"
+            },
+            "description": "Filter by data source: 'themuse', 'adzuna', or omit for both"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "description": "Max skills to return (default 15, max 50)",
+              "default": 15,
+              "title": "Limit"
+            },
+            "description": "Max skills to return (default 15, max 50)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendingSkillsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/jobs/match-skills": {
       "get": {
         "tags": [
@@ -1122,6 +1278,61 @@
         ],
         "title": "SalaryResponse",
         "description": "Salary query results."
+      },
+      "TrendingSkill": {
+        "properties": {
+          "skill": {
+            "type": "string",
+            "title": "Skill",
+            "description": "Skill name, e.g. 'Python'"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Number of job descriptions mentioning this skill"
+          },
+          "percentage": {
+            "type": "number",
+            "title": "Percentage",
+            "description": "count / jobs_analyzed * 100"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill",
+          "count",
+          "percentage"
+        ],
+        "title": "TrendingSkill",
+        "description": "A single skill with its frequency stats."
+      },
+      "TrendingSkillsResponse": {
+        "properties": {
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/TrendingSkill"
+            },
+            "type": "array",
+            "title": "Skills"
+          },
+          "jobs_analyzed": {
+            "type": "integer",
+            "title": "Jobs Analyzed",
+            "description": "Total job descriptions scanned"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skills",
+          "jobs_analyzed",
+          "limit"
+        ],
+        "title": "TrendingSkillsResponse",
+        "description": "Top trending skills extracted from job descriptions."
       },
       "ValidationError": {
         "properties": {
