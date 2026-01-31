@@ -8,6 +8,7 @@ from app.config import settings
 from app.database import get_cloudant
 from app.models import (
     JobDetail,
+    JobFiltersResponse,
     JobMatchResponse,
     JobMatchSummary,
     JobSearchResponse,
@@ -172,6 +173,79 @@ def search_jobs(
         limit=limit,
         skip=skip,
     )
+
+
+# ---------------------------------------------------------------------------
+# Filters
+# ---------------------------------------------------------------------------
+
+_filters_cache: JobFiltersResponse | None = None
+_filters_cache_time: float = 0
+
+
+@router.get(
+    "/filters",
+    response_model=JobFiltersResponse,
+    operation_id="get_job_filters",
+    summary="Get all available filter values for job searches",
+    description=(
+        "Returns every distinct location, category, and level in the database. "
+        "Use this to discover valid filter values before searching jobs. "
+        "For example, call this to find valid locations instead of guessing city names. "
+        "Results are cached for 1 hour."
+    ),
+)
+def get_job_filters() -> JobFiltersResponse:
+    global _filters_cache, _filters_cache_time
+
+    if _filters_cache and (time.time() - _filters_cache_time) < 3600:
+        return _filters_cache
+
+    client = get_cloudant()
+    locations: set[str] = set()
+    categories: set[str] = set()
+    levels: set[str] = set()
+    bookmark: str | None = None
+
+    while True:
+        kwargs: dict = {
+            "db": DB_NAME,
+            "selector": {"type": "job_post"},
+            "fields": ["locations", "categories", "levels"],
+            "limit": 200,
+        }
+        if bookmark:
+            kwargs["bookmark"] = bookmark
+        for attempt in range(5):
+            try:
+                result = client.post_find(**kwargs).get_result()
+                break
+            except Exception as exc:
+                if "429" in str(exc) and attempt < 4:
+                    time.sleep(1.0 * (attempt + 1))
+                    continue
+                raise
+        docs = result.get("docs", [])
+        if not docs:
+            break
+        for doc in docs:
+            for loc in doc.get("locations", []):
+                locations.add(loc)
+            for cat in doc.get("categories", []):
+                categories.add(cat)
+            for lvl in doc.get("levels", []):
+                levels.add(lvl)
+        bookmark = result.get("bookmark")
+        if not bookmark or len(docs) < 200:
+            break
+
+    _filters_cache = JobFiltersResponse(
+        locations=sorted(locations),
+        categories=sorted(categories),
+        levels=sorted(levels),
+    )
+    _filters_cache_time = time.time()
+    return _filters_cache
 
 
 # ---------------------------------------------------------------------------

@@ -53,6 +53,18 @@ class JobMatchResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Filter models
+# ---------------------------------------------------------------------------
+
+class JobFiltersResponse(BaseModel):
+    """Available filter values for job searches."""
+
+    locations: list[str] = Field(..., description="All distinct job locations in the database")
+    categories: list[str] = Field(..., description="All distinct job categories")
+    levels: list[str] = Field(..., description="All distinct seniority levels")
+
+
+# ---------------------------------------------------------------------------
 # Trending skills models
 # ---------------------------------------------------------------------------
 

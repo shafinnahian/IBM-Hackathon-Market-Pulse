@@ -180,6 +180,28 @@
         }
       }
     },
+    "/jobs/filters": {
+      "get": {
+        "tags": [
+          "Jobs"
+        ],
+        "summary": "Get all available filter values for job searches",
+        "description": "Returns every distinct location, category, and level in the database. Use this to discover valid filter values before searching jobs. For example, call this to find valid locations instead of guessing city names. Results are cached for 1 hour.",
+        "operationId": "get_job_filters",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobFiltersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/jobs/trending-skills": {
       "get": {
         "tags": [
@@ -908,6 +930,42 @@
         ],
         "title": "JobDetail",
         "description": "Full job listing including description."
+      },
+      "JobFiltersResponse": {
+        "properties": {
+          "locations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Locations",
+            "description": "All distinct job locations in the database"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories",
+            "description": "All distinct job categories"
+          },
+          "levels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Levels",
+            "description": "All distinct seniority levels"
+          }
+        },
+        "type": "object",
+        "required": [
+          "locations",
+          "categories",
+          "levels"
+        ],
+        "title": "JobFiltersResponse",
+        "description": "Available filter values for job searches."
       },
       "JobMatchResponse": {
         "properties": {
