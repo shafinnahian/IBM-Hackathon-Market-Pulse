@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query
 
+from app.config import settings
 from app.database import get_cloudant
 from app.models import SalaryInfo, SalaryRecord, SalaryResponse
 
 router = APIRouter(prefix="/salaries", tags=["Salaries"])
 
-DB_NAME = "salary_data"
+DB_NAME = settings.cloudant_db_name
 
 
 def _doc_to_record(doc: dict) -> SalaryRecord:

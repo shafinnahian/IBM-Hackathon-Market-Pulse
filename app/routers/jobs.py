@@ -4,6 +4,7 @@ from collections import Counter
 
 from fastapi import APIRouter, HTTPException, Query
 
+from app.config import settings
 from app.database import get_cloudant
 from app.models import (
     JobDetail,
@@ -123,6 +124,18 @@ def search_jobs(
     limit: int = Query(25, ge=1, le=100, description="Max results to return"),
     skip: int = Query(0, ge=0, description="Number of results to skip for pagination"),
 ) -> JobSearchResponse:
+    selector: dict = {"type": "job_post"}
+
+    if title:
+        selector["title_raw"] = {"$regex": f"(?i){title}"}
+    if company:
+        selector["company_name"] = {"$regex": f"(?i){company}"}
+    if location:
+        selector["locations"] = {"$elemMatch": {"$regex": f"(?i){location}"}}
+    if category:
+        selector["categories"] = {"$elemMatch": {"$regex": f"(?i){category}"}}
+    if level:
+        selector["levels"] = {"$elemMatch": {"$regex": f"(?i){level}"}}
     client = get_cloudant()
 
     if source:

@@ -16,9 +16,9 @@ Requires .env with:
 
 import argparse
 import os
+import re
 import sys
 import time
-import json
 import requests
 from dotenv import load_dotenv
 
@@ -30,7 +30,8 @@ from app.database import get_cloudant, ensure_database
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 SALARY_API_URL = "https://api.openwebninja.com/job-salary-data/job-salary"
 COMPANY_SALARY_API_URL = "https://api.openwebninja.com/job-salary-data/company-job-salary"
-DB_NAME = "salary_data"
+# Single DB for all market data (jobs + salary)
+DB_NAME = os.getenv("CLOUDANT_DB_NAME", "market_pulse_jobs")
 
 # ---------------------------------------------------------------------------
 # Data dimensions
@@ -137,9 +138,52 @@ def fetch_company_salary(job_title: str, company: str) -> dict | None:
         return None
 
 
-def store_in_cloudant(doc: dict) -> None:
+def _slug(s: str) -> str:
+    """Normalize string for use in _id (lowercase, non-alphanumeric -> hyphen)."""
+    if not s:
+        return "unknown"
+    s = s.strip().lower()
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    s = re.sub(r"-+", "-", s).strip("-")
+    return s or "unknown"
+
+
+def _salary_doc_id(q: dict) -> str:
+    """Deterministic _id for salary docs so re-runs overwrite."""
+    t = q.get("type", "")
+    role = _slug(q.get("job_title", ""))
+    if t == "salary_by_location":
+        loc = _slug(q.get("location", ""))
+        exp = (q.get("years_of_experience") or "ONE_TO_THREE").replace("_", "-")
+        return f"salary_location:{role}:{loc}:{exp}"
+    if t == "salary_by_experience":
+        loc = _slug(q.get("location", ""))
+        exp = (q.get("years_of_experience") or "").replace("_", "-")
+        return f"salary_experience:{role}:{loc}:{exp}"
+    if t == "salary_by_company":
+        company = _slug(q.get("company", ""))
+        return f"salary_company:{role}:{company}"
+    return f"salary:{role}:{id(q)}"
+
+
+def store_in_cloudant(doc: dict) -> bool:
+    """Upsert salary doc with deterministic _id (GET rev then PUT). Returns True if stored."""
     client = get_cloudant()
-    client.post_document(db=DB_NAME, document=doc).get_result()
+    doc_id = doc["_id"]
+    rev = None
+    try:
+        existing = client.get_document(db=DB_NAME, doc_id=doc_id).get_result()
+        rev = existing.get("_rev") if isinstance(existing, dict) else getattr(existing, "_rev", None)
+    except Exception:
+        pass
+    kwargs = {"db": DB_NAME, "doc_id": doc_id, "document": doc}
+    if rev is not None:
+        kwargs["rev"] = rev
+    try:
+        client.put_document(**kwargs).get_result()
+        return True
+    except Exception:
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -218,9 +262,12 @@ def run_batch(queries: list[dict], dry_run: bool = False):
 
         if data and data.get("status") == "OK" and data.get("data"):
             doc = {**q, "api_response": data["data"][0]}
-            store_in_cloudant(doc)
-            stored += 1
-            print("OK")
+            doc["_id"] = _salary_doc_id(q)
+            if store_in_cloudant(doc):
+                stored += 1
+                print("OK")
+            else:
+                print("SKIP")
         else:
             print("NO DATA")
 
