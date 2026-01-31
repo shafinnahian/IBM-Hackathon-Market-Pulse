@@ -234,27 +234,18 @@ def search_jobs(
 # Filters
 # ---------------------------------------------------------------------------
 
-_filters_cache: JobFiltersResponse | None = None
+_cached_locations: list[str] = []
+_cached_categories: list[str] = []
+_cached_levels: list[str] = []
 _filters_cache_time: float = 0
 
 
-@router.get(
-    "/filters",
-    response_model=JobFiltersResponse,
-    operation_id="get_job_filters",
-    summary="Get all available filter values for job searches",
-    description=(
-        "Returns every distinct location, category, and level in the database. "
-        "Use this to discover valid filter values before searching jobs. "
-        "For example, call this to find valid locations instead of guessing city names. "
-        "Results are cached for 1 hour."
-    ),
-)
-def get_job_filters() -> JobFiltersResponse:
-    global _filters_cache, _filters_cache_time
+def _load_filter_cache() -> None:
+    """Scan the DB once and cache distinct values for each filterable field."""
+    global _cached_locations, _cached_categories, _cached_levels, _filters_cache_time
 
-    if _filters_cache and (time.time() - _filters_cache_time) < 3600:
-        return _filters_cache
+    if _cached_locations and (time.time() - _filters_cache_time) < 3600:
+        return
 
     client = get_cloudant()
     locations: set[str] = set()
@@ -294,13 +285,85 @@ def get_job_filters() -> JobFiltersResponse:
         if not bookmark or len(docs) < 200:
             break
 
-    _filters_cache = JobFiltersResponse(
-        locations=sorted(locations),
-        categories=sorted(categories),
-        levels=sorted(levels),
-    )
+    _cached_locations = sorted(locations)
+    _cached_categories = sorted(categories)
+    _cached_levels = sorted(levels)
     _filters_cache_time = time.time()
-    return _filters_cache
+
+
+def _filter_locations(q: str, values: list[str]) -> list[str]:
+    """Filter locations with state name/abbreviation expansion."""
+    q_lower = q.lower().strip()
+
+    # Build regex patterns for matching
+    # For 2-letter queries that are state abbreviations, use word boundary to avoid
+    # "CA" matching "Arcata", "Boca Raton", etc.
+    if len(q_lower) == 2 and q_lower in _ABBREV_TO_STATE:
+        patterns = [re.compile(rf"\b{re.escape(q)}\b", re.IGNORECASE)]
+    else:
+        patterns = [re.compile(re.escape(q), re.IGNORECASE)]
+
+    # Expand: "california" → also match ", CA" style entries
+    if q_lower in _STATE_ABBREVIATIONS:
+        abbrev = _STATE_ABBREVIATIONS[q_lower]
+        patterns.append(re.compile(rf"\b{re.escape(abbrev)}\b"))
+
+    # Expand: "CA" → also match "California" style entries
+    if q_lower in _ABBREV_TO_STATE:
+        full_name = _ABBREV_TO_STATE[q_lower]
+        patterns.append(re.compile(re.escape(full_name), re.IGNORECASE))
+
+    return [v for v in values if any(p.search(v) for p in patterns)]
+
+
+@router.get(
+    "/filters",
+    response_model=JobFiltersResponse,
+    operation_id="get_job_filters",
+    summary="Look up valid filter values for a specific field",
+    description=(
+        "Returns matching values for a single filterable field (locations, categories, "
+        "or levels). Use the optional 'q' parameter to search within the field. "
+        "For locations, searching by state name (e.g. 'california') also returns "
+        "entries using the abbreviation ('CA') and vice versa. "
+        "Use this tool when you need to discover valid values for job search filters."
+    ),
+)
+def get_job_filters(
+    field: str = Query(
+        ...,
+        description="Field to look up: 'locations', 'categories', or 'levels'",
+    ),
+    q: str | None = Query(
+        None,
+        description="Optional search term to filter results, e.g. 'california' or 'software'",
+    ),
+    limit: int = Query(20, ge=1, le=50, description="Max values to return (default 20)"),
+) -> JobFiltersResponse:
+    if field not in ("locations", "categories", "levels"):
+        raise HTTPException(status_code=400, detail="field must be 'locations', 'categories', or 'levels'")
+
+    _load_filter_cache()
+
+    if field == "locations":
+        values = _cached_locations
+    elif field == "categories":
+        values = _cached_categories
+    else:
+        values = _cached_levels
+
+    if q:
+        if field == "locations":
+            values = _filter_locations(q, values)
+        else:
+            q_lower = q.lower()
+            values = [v for v in values if q_lower in v.lower()]
+
+    return JobFiltersResponse(
+        field=field,
+        values=values[:limit],
+        total=len(values),
+    )
 
 
 # ---------------------------------------------------------------------------

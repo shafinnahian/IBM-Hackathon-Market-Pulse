@@ -57,11 +57,11 @@ class JobMatchResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class JobFiltersResponse(BaseModel):
-    """Available filter values for job searches."""
+    """Matching filter values for a single field."""
 
-    locations: list[str] = Field(..., description="All distinct job locations in the database")
-    categories: list[str] = Field(..., description="All distinct job categories")
-    levels: list[str] = Field(..., description="All distinct seniority levels")
+    field: str = Field(..., description="The field that was queried: 'locations', 'categories', or 'levels'")
+    values: list[str] = Field(..., description="Matching values, sorted alphabetically")
+    total: int = Field(..., description="Total number of matches (before limit applied)")
 
 
 # ---------------------------------------------------------------------------
