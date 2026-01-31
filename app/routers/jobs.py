@@ -204,13 +204,16 @@ def trending_skills(
 ) -> TrendingSkillsResponse:
     client = get_cloudant()
 
+    max_docs_per_source = 2000
+
     def _fetch_all(selector: dict) -> list[dict]:
-        """Paginate through all matching docs using Cloudant bookmarks."""
+        """Paginate through matching docs using Cloudant bookmarks (capped)."""
         docs: list[dict] = []
         bookmark: str | None = None
         page_size = 200
-        while True:
-            kwargs: dict = {"db": DB_NAME, "selector": selector, "limit": page_size}
+        while len(docs) < max_docs_per_source:
+            remaining = max_docs_per_source - len(docs)
+            kwargs: dict = {"db": DB_NAME, "selector": selector, "limit": min(page_size, remaining)}
             if bookmark:
                 kwargs["bookmark"] = bookmark
             for attempt in range(5):
