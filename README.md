@@ -1,6 +1,7 @@
 # Market Pulse
 
 LLM-based job market toolkit to optimize user profiles. Built for the IBM watsonx Hackathon.
+[Project demo](https://youtu.be/K8tK7UBsHeI?si=ns9h1Ay-JeG7UlTW)
 
 ## Tech Stack
 
